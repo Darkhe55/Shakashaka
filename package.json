@@ -1,0 +1,28 @@
+{
+  "name": "shakashaka-puzzle",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "留方（Shakashaka）逻辑谜题：在白格中放置黑色直角三角形，把所有留空白格切成矩形。",
+  "puzzle": {
+    "port": 5213,
+    "comment": "dev server 端口（vite.config.ts / scripts/dev.mjs / scripts/ui-check.mjs 都读这里，是唯一来源）"
+  },
+  "scripts": {
+    "dev": "vite",
+    "start": "node scripts/dev.mjs",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "gen": "node scripts/gen-puzzles.mjs",
+    "check": "node scripts/check.mjs",
+    "ui-check": "node scripts/ui-check.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.64.1",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.6"
+  },
+  "allowScripts": {
+    "esbuild@0.25.12": true
+  }
+}

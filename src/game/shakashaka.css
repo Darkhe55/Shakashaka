@@ -1,0 +1,152 @@
+/* ════════════════════════════════════════════════════════════════
+   留方（Shakashaka）—— 游戏专用皮肤
+   纸张 + 墨色：留白是暖纸，三角形是墨块，数字写在黑格上。
+   ════════════════════════════════════════════════════════════════ */
+
+:root {
+  --sh-ink: #2f2c27;
+  --sh-ink-soft: #4a453c;
+  --sh-paper: #fbf7ec;
+  --sh-paper-deep: #f3ecda;
+  --sh-board: #e9e0cc;
+  --sh-board-line: #d5cab3;
+  --sh-tri: #33302a;
+  --sh-tri-hot: #1f1d19;
+  --sh-cursor: #2f9b7f;
+  --sh-clue: #f7f1e1;
+}
+
+.board-svg.sh-board {
+  --sh-board: #e9e0cc;
+}
+
+.board-svg .sh-board-bg {
+  fill: #efe7d5;
+  stroke: #d8ceb8;
+  stroke-width: 1.5;
+}
+
+.board-svg .sh-cell {
+  stroke: none;
+  pointer-events: none;
+}
+
+.board-svg .sh-cell.sh-empty {
+  fill: rgba(255, 253, 246, 0.55);
+}
+
+.board-svg .sh-cell.sh-tri-cell {
+  fill: rgba(247, 240, 224, 0.8);
+}
+
+.board-svg .sh-cell.sh-black {
+  fill: #2f2c27;
+}
+
+.board-svg .sh-grid line {
+  stroke: rgba(70, 62, 48, 0.22);
+  stroke-linecap: square;
+}
+
+.board-svg .sh-frame {
+  fill: none;
+  stroke: rgba(70, 62, 48, 0.55);
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.board-svg .sh-tri {
+  fill: #33302a;
+  stroke: rgba(20, 18, 15, 0.55);
+  stroke-width: 0.6;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.board-svg .sh-tri.sh-fx-glow {
+  filter: drop-shadow(0 0 7px rgba(47, 155, 127, 0.85));
+  fill: #1f1d19;
+}
+
+.board-svg .sh-clue {
+  fill: #f7f1e1;
+  font-family: var(--mono);
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+}
+
+.board-svg .sh-clue.sh-clue-bad {
+  fill: #ff9a86;
+}
+
+.board-svg .sh-error {
+  fill: rgba(194, 59, 46, 0.12);
+  stroke: #c23b2e;
+  stroke-width: 2;
+  stroke-dasharray: 5 3;
+  pointer-events: none;
+}
+
+/* 白区还不是矩形：属于「未完成」，用较柔和的提示色 */
+.board-svg .sh-region-warn {
+  fill: rgba(196, 92, 38, 0.06);
+  stroke: rgba(196, 92, 38, 0.55);
+  stroke-width: 1.6;
+  stroke-dasharray: 4 3;
+  pointer-events: none;
+}
+
+.board-svg .sh-cursor {
+  fill: rgba(47, 155, 127, 0.1);
+  stroke: #2f9b7f;
+  stroke-width: 2.2;
+  stroke-dasharray: 6 3;
+  pointer-events: none;
+}
+
+.board-svg .cell-hit {
+  pointer-events: all;
+}
+
+.board-svg .cell-hit:active {
+  fill: rgba(196, 92, 38, 0.16);
+}
+
+.board-svg .cell-hit:hover {
+  fill: rgba(196, 92, 38, 0.1);
+}
+
+/* —— 自定义题板：黑格 / 黑格数字 —— */
+.custom-cell.sh-ed-black {
+  background: #2f2c27;
+  border-color: #1f1d19;
+  color: #f7f1e1;
+}
+
+.custom-cell.sh-ed-clue {
+  background: #3a362f;
+  border-color: #1f1d19;
+  color: #ffd9a0;
+}
+
+.custom-cell.sh-ed-black.empty,
+.custom-cell.sh-ed-clue.empty {
+  background: #f7f3ea;
+  color: transparent;
+}
+
+.custom-cell.sh-ed-black.selected,
+.custom-cell.sh-ed-clue.selected {
+  outline-color: #2f9b7f;
+}
+
+/* —— 回放：清除时的涟漪 —— */
+.board-svg .fx-ripple {
+  fill: none;
+  stroke: #c45c26;
+  stroke-width: 3;
+  pointer-events: none;
+  opacity: 0.9;
+}
