@@ -79,6 +79,23 @@ npm run ui-check   # Playwright 冒烟测试（先启动 dev server，端口 521
 `npm run check` 直接在 Node 里 import `src/game/audit.ts` 与求解器（Node 24 原生 TS
 type-stripping），无需浏览器；截图输出到 `output/playwright/`。
 
+## 图片导入题库（识图 CLI）
+
+```bash
+npm run import-image -- month.png                # 识别并预览（不写入）
+npm run import-image -- month.png --verify       # 额外求解 / 唯一性检查（大盘面会超时警告）
+npm run import-image -- month.png --append       # 写入 src/game/imported-puzzles.ts
+npm run import-image -- month.png --json out.json  # 导出识别结果
+```
+
+- 全自动识图：Playwright + 本机 Edge 取像素 → 网格线投影定位 n×n 格 →
+  格心区域判断黑格/白格 → 黑格里白字（0–4）连通域提取 → 字形聚类 + 多字体多字号模板匹配。
+- 结构校验：数字不得超过其相邻白格数；仍不确定时用 `--map 簇号=数字` 覆盖字形簇判读，
+  或 `--fix "列,行=值"`（值写 `#` 或 0–4）覆盖单格。
+- 导入题写入 `src/game/imported-puzzles.ts`，`npm run gen` 不会覆盖；游戏启动时会与内置题一起加载。
+- 限制：`--verify` 对 50×50 这类大盘面基本必然超时（只警告）；未带参考解时「显示解 / 提示一格」
+  依赖求解器现场计算，大盘面可能很慢。
+
 ## 目录结构
 
 ```
@@ -119,3 +136,4 @@ src/
   「回溯试探」并给出完整解）。
 - 自定义题板的唯一解校验对 20×20 大棋盘可能搜索超时，此时会提示「求解超时」。
 - 三角形朝向不影响规则，因此参考解中的朝向只是观感，不参与唯一性判定。
+

@@ -7,6 +7,7 @@
  */
 
 import { RAW_PUZZLES } from './puzzles-data.ts'
+import { IMPORTED_PUZZLES } from './imported-puzzles.ts'
 import { makeState } from './state.ts'
 import {
   decodeBoard,
@@ -20,7 +21,8 @@ import {
 export const builtinPuzzles: ShakaPuzzle[] = []
 const solutionCells = new Map<string, number[]>()
 
-for (const raw of RAW_PUZZLES) {
+// 内置题 + 图片识别导入题（imported-puzzles.ts 由 scripts/import-image.mjs --append 写入）
+for (const raw of [...RAW_PUZZLES, ...IMPORTED_PUZZLES]) {
   const size = raw.width * raw.height
   const board = decodeBoard(raw.board, size)
   if (!board) {
