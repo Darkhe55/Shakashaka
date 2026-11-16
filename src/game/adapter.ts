@@ -63,8 +63,8 @@ const meta = {
   customIdPrefix: 'shakashaka-custom-',
   customMinW: 4,
   customMinH: 4,
-  customMaxW: 20,
-  customMaxH: 20,
+  customMaxW: 30,
+  customMaxH: 30,
   targetKind: 'cell' as const,
   interactionHint:
     '<kbd>左键</kbd> 循环 空 → 左上 → 右上 → 左下 → 右下 · <kbd>右键</kbd> 清除',
@@ -103,7 +103,7 @@ const custom: CustomSupport = {
   },
 
   hint:
-    '点击循环：空 → 黑(■) → 黑0 → 黑1 → 黑2 → 黑3 → 黑4；数字键 0 = 白格，1–4 = 黑格带同数数字，5 = 黑格无数字，. / 退格清空。建议不超过 20×20。载入后点「求解」可校验是否恰好一解。',
+    '点击循环：空 → 黑(■) → 黑0 → 黑1 → 黑2 → 黑3 → 黑4；数字键 0 = 白格，1–4 = 黑格带同数数字，5 = 黑格无数字，. / 退格清空。宽高各 4–30（支持非正方形，黑格可围出异形轮廓）。载入后点「求解」可校验是否恰好一解。',
 
   toGrid: (p) => {
     const board = (p as ShakaPuzzle).board
