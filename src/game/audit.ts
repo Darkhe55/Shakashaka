@@ -40,6 +40,14 @@ export interface PuzzleAudit {
   timedOut: boolean
   logicFrames: number
   logicSaturated: boolean
+  /** 反证试探次数（0 = 纯规则推完） */
+  logicProbeTrials: number
+  /** 兜底回溯节点数 */
+  logicSearchNodes: number
+  /** 定点推理后仍未定的白格数 */
+  logicUndecided: number
+  /** 各规则贡献的推导帧数 */
+  ruleFrames: Record<number, number>
   logicFinalValid: boolean
   logicMatchesRef: boolean
   logicMs: number
@@ -142,6 +150,10 @@ export function auditBuiltinPuzzles(): AuditReport {
       timedOut: counted.timedOut,
       logicFrames: plan.frames.length,
       logicSaturated: plan.saturated,
+      logicProbeTrials: plan.probeTrials,
+      logicSearchNodes: plan.searchNodes,
+      logicUndecided: plan.undecided,
+      ruleFrames: plan.ruleFrames,
       logicFinalValid,
       logicMatchesRef,
       logicMs,

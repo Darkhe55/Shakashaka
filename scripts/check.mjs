@@ -39,6 +39,9 @@ const rows = report.puzzles.map((p) => ({
   参考解: p.refMissing ? '缺失' : p.refValid ? 'OK' : '非法',
   解数: p.timedOut ? '超时' : p.unique ? '唯一' : `≥${p.solutionCount}`,
   逻辑帧: p.logicFrames,
+  反证: p.logicProbeTrials,
+  回溯: p.logicSearchNodes,
+  未定格: p.logicUndecided,
   纯逻辑推完: p.logicSaturated ? '是' : '否',
   终态校验: p.logicFinalValid ? 'OK' : 'FAIL',
   与参考解一致: p.logicMatchesRef ? 'OK' : 'FAIL',
@@ -46,6 +49,15 @@ const rows = report.puzzles.map((p) => ({
 
 console.log(`[check] 内置题：${report.puzzles.length} 道`)
 if (rows.length) console.table(rows)
+if (rows.length) {
+  const probe = report.puzzles.reduce((a, p) => a + p.logicProbeTrials, 0)
+  const search = report.puzzles.reduce((a, p) => a + p.logicSearchNodes, 0)
+  const frames = report.puzzles.reduce((a, p) => a + p.logicFrames, 0)
+  const pure = report.puzzles.filter((p) => p.logicProbeTrials === 0 && p.logicSearchNodes === 0).length
+  console.log(
+    `[check] 推理量：反证合计 ${probe} · 回溯节点合计 ${search} · 帧合计 ${frames} · 纯规则题 ${pure}/${report.puzzles.length}`,
+  )
+}
 
 console.log(`[check] 自定义题板编解码往返：${report.customRoundtrip ? 'OK' : 'FAIL'}`)
 console.log(`[check] 进度存档往返：${report.stateRoundtrip ? 'OK' : 'FAIL'}`)

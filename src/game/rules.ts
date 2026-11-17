@@ -4,14 +4,20 @@
  * 每个白格维护一个「可能取值」位集：
  *   bit0 = 留空，bit1..bit4 = 四种三角形朝向
  *
- * 两条基础规则（对求解器与逻辑回放共用，且只做「必然」删减，保持可靠性）：
+ * 四条安全规则（对求解器与逻辑回放共用，且只做「必然」删减，保持可靠性）：
  *   规则 1（数字）：黑格四周的三角形数量恰好等于数字；
  *   规则 2（矩形）：所有留空白格必须连成矩形。
  *      - 一个已知留空的连通块，其外接矩形内的所有白格都必然是留空；
  *      - 已经完成矩形的连通块，若某一侧无法整排外扩（被黑格/必为三角的格挡住或出界），
  *        则紧贴该侧的那一排格子都不能留空（只能是三角形）。
+ *   规则 3（凸角）：任意 2×2 内不能恰好有 3 格留空。
+ *      三格留空必连成一块，其外接矩形就是这 2×2；第 4 格若是三角形/黑格就落在矩形内 → 矛盾。
+ *      于是当 2×2 里已有 2 格必留空 + 1 格必三角形时，第 4 格必为三角形。
+ *   规则 4（共享白格）：对角相邻的两个数字格共享 2 个白格邻居。
+ *      枚举共享格的三角形/留空分配，用两个数字的计数范围判定可行性；
+ *      在所有可行分配里取值一致的共享格即可确定（数字弧一致）。
  *
- * 规则 3（反证）与规则 4（回溯）在 logic.ts / solver.ts 里使用。
+ * 规则 5（反证）与规则 6（回溯）在 logic.ts / solver.ts 里使用。
  */
 
 import type { ShakaPuzzle } from './types.ts'
@@ -27,8 +33,12 @@ export const ALL_BITS = EMPTY_BIT | TRI_BITS
 /** 规则编号（用于回放状态栏） */
 export const RULE_CLUE = 1
 export const RULE_REGION = 2
-export const RULE_PROBE = 3
-export const RULE_SEARCH = 4
+/** 2×2 凸角：不允许恰好 3 格留空（等价于 2 留空 + 1 三角 → 第 4 格必三角） */
+export const RULE_CORNER = 3
+/** 对角数字共享白格的弧一致 */
+export const RULE_SHARED = 4
+export const RULE_PROBE = 5
+export const RULE_SEARCH = 6
 
 export interface Deduction {
   index: number
@@ -183,10 +193,189 @@ export function propagate(
     }
     if (bad) return false
 
+    // 规则 3：2×2 凸角（不允许恰好 3 格留空）
+    if (!propagateCornerWindows(dom, puzzle, assign)) return false
+
+    // 规则 4：对角数字共享白格的弧一致
+    if (!propagateSharedClues(dom, puzzle, nb, assign)) return false
+
     // 规则 2：矩形约束
     if (!propagateRegions(dom, puzzle, nb, assign)) return false
   }
 
+  return true
+}
+
+/**
+ * 规则 3：任意 2×2 内不能恰好 3 格留空。
+ * 证明：三格留空在同一 2×2 内必四连通，其外接矩形就是这 2×2；
+ * 第 4 格若为三角形或黑格，就落在矩形外接框内却不是留空格 → 白区不是矩形，矛盾。
+ * 因此对每个 2×2 枚举「允许的留空/三角组合」，取值在所有可行组合里一致的格即可确定。
+ */
+function propagateCornerWindows(
+  dom: Uint8Array,
+  puzzle: ShakaPuzzle,
+  assign: (i: number, mask: number, rule: number) => void,
+): boolean {
+  const w = puzzle.width
+  const h = puzzle.height
+  const board = puzzle.board
+  const cells: number[] = [0, 0, 0, 0]
+  const masks: number[] = [0, 0, 0, 0]
+
+  for (let y = 0; y + 1 < h; y++) {
+    for (let x = 0; x + 1 < w; x++) {
+      const a = y * w + x
+      cells[0] = a
+      cells[1] = a + 1
+      cells[2] = a + w
+      cells[3] = a + w + 1
+      for (let k = 0; k < 4; k++) masks[k] = isBlack(board[cells[k]!]!) ? 0 : dom[cells[k]!]!
+      let feasible = 0
+      let emptyOk = 0b1111 // 每格「可以为空」的可行组合统计（按位或）
+      let triOk = 0b1111
+      // 位：1 = 留空，0 = 三角形；黑格固定为 0（非空）
+      for (let pattern = 0; pattern < 16; pattern++) {
+        let empties = 0
+        let ok = true
+        for (let k = 0; k < 4; k++) {
+          const isEmpty = (pattern >> k) & 1
+          if (isEmpty) {
+            empties++
+            if (!(masks[k]! & EMPTY_BIT)) {
+              ok = false
+              break
+            }
+          } else if (masks[k]! !== 0 && !(masks[k]! & TRI_BITS)) {
+            // 白格必须还有三角形候选；黑格 masks = 0，固定为非空
+            ok = false
+            break
+          }
+        }
+        if (!ok) continue
+        // 三格留空 + 第 4 格非空 → 白区不是矩形，禁止
+        if (empties === 3) continue
+        feasible++
+        let emptyBits = 0
+        let triBits = 0
+        for (let k = 0; k < 4; k++) {
+          if ((pattern >> k) & 1) emptyBits |= 1 << k
+          else triBits |= 1 << k
+        }
+        emptyOk &= emptyBits
+        triOk &= triBits
+      }
+      if (!feasible) return false
+      for (let k = 0; k < 4; k++) {
+        const index = cells[k]!
+        if (isBlack(board[index]!)) continue
+        const canEmpty = (emptyOk >> k) & 1
+        const canTri = (triOk >> k) & 1
+        if (!canEmpty && canTri) assign(index, TRI_BITS, RULE_CORNER)
+        else if (canEmpty && !canTri) assign(index, EMPTY_BIT, RULE_CORNER)
+      }
+    }
+  }
+  return true
+}
+
+/**
+ * 规则 4：对角相邻（曼哈顿距离 2）的两个数字格共享 2 个白格邻居。
+ * 枚举共享格「三角形 / 留空」的所有分配；对每个分配，用两个数字各自的
+ * 「还需要几个三角形、非共享邻居够不够」判断可行性。
+ * 在所有可行分配中取值一致的共享格即可确定。
+ */
+function propagateSharedClues(
+  dom: Uint8Array,
+  puzzle: ShakaPuzzle,
+  nb: number[][],
+  assign: (i: number, mask: number, rule: number) => void,
+): boolean {
+  const w = puzzle.width
+  const h = puzzle.height
+  const board = puzzle.board
+  const size = w * h
+  const clues: number[] = []
+  for (let i = 0; i < size; i++) if (clueOf(board[i]!) >= 0) clues.push(i)
+  if (clues.length < 2) return true
+
+  for (let a = 0; a < clues.length; a++) {
+    const ci = clues[a]!
+    const xi = ci % w
+    const yi = (ci / w) | 0
+    for (let b = a + 1; b < clues.length; b++) {
+      const cj = clues[b]!
+      const dx = cj % w
+      const dy = (cj / w) | 0
+      if (Math.abs(dx - xi) + Math.abs(dy - yi) !== 2) continue
+
+      const ni = nb[ci]!.filter((j) => !isBlack(board[j]!))
+      const nj = nb[cj]!.filter((j) => !isBlack(board[j]!))
+      const shared: number[] = []
+      for (const j of ni) if (nj.includes(j)) shared.push(j)
+      if (!shared.length) continue
+
+      const onlyI = ni.filter((j) => !shared.includes(j))
+      const onlyJ = nj.filter((j) => !shared.includes(j))
+      const triI = onlyI.filter((j) => (dom[j]! & TRI_BITS) !== 0).length
+      const emptyI = onlyI.filter((j) => (dom[j]! & EMPTY_BIT) !== 0).length
+      const triJ = onlyJ.filter((j) => (dom[j]! & TRI_BITS) !== 0).length
+      const emptyJ = onlyJ.filter((j) => (dom[j]! & EMPTY_BIT) !== 0).length
+      const clueI = clueOf(board[ci]!)
+      const clueJ = clueOf(board[cj]!)
+
+      // 可行性：共享格放 triS 个三角形，非共享格需要 clue - triS 个三角形
+      const fits = (need: number, cells: number, tri: number, empty: number): boolean => {
+        if (need < 0 || need > cells) return false
+        if (need > tri) return false
+        if (cells - need > empty) return false
+        return true
+      }
+
+      const allEmpty = (1 << shared.length) - 1
+      let feasible = 0
+      // 每格「可以为空」「可以为三角」的可行分配按位或
+      let emptyOk = allEmpty
+      let triOk = allEmpty
+      for (let pattern = 0; pattern < 1 << shared.length; pattern++) {
+        let triS = 0
+        let ok = true
+        for (let k = 0; k < shared.length; k++) {
+          const j = shared[k]!
+          if ((pattern >> k) & 1) {
+            triS++
+            if (!(dom[j]! & TRI_BITS)) {
+              ok = false
+              break
+            }
+          } else if (!(dom[j]! & EMPTY_BIT)) {
+            ok = false
+            break
+          }
+        }
+        if (!ok) continue
+        if (!fits(clueI - triS, onlyI.length, triI, emptyI)) continue
+        if (!fits(clueJ - triS, onlyJ.length, triJ, emptyJ)) continue
+        feasible++
+        let emptyBits = 0
+        let triBits = 0
+        for (let k = 0; k < shared.length; k++) {
+          if ((pattern >> k) & 1) triBits |= 1 << k
+          else emptyBits |= 1 << k
+        }
+        emptyOk &= emptyBits
+        triOk &= triBits
+      }
+      if (!feasible) return false
+      for (let k = 0; k < shared.length; k++) {
+        const j = shared[k]!
+        const canEmpty = (emptyOk >> k) & 1
+        const canTri = (triOk >> k) & 1
+        if (!canEmpty && canTri) assign(j, TRI_BITS, RULE_SHARED)
+        else if (canEmpty && !canTri) assign(j, EMPTY_BIT, RULE_SHARED)
+      }
+    }
+  }
   return true
 }
 
