@@ -176,6 +176,14 @@ export function planLogicSolve(puzzle: Puzzle, initialState: GameState): ShakaLo
   }
 
   const dom = initialDomains(p)
+  // 工作域从「当前盘面」开始：玩家已放置的三角形（任意朝向）视为「已知是三角形」，
+  // 其余白格保持全部候选（未知）。注意：本游戏没有显式的「排除/留空」标记。
+  if (s.cells.length === size) {
+    for (let i = 0; i < size; i++) {
+      if (isBlack(p.board[i]!)) continue
+      if ((s.cells[i] ?? NONE) !== NONE) dom[i] = TRI_BITS
+    }
+  }
   const hook = (d: { index: number; value: number; rule: number }): void => {
     emitDeduction(d.index, d.value !== 0, d.rule)
   }
