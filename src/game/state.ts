@@ -73,8 +73,12 @@ export function cycleValue(state: GameState, target: HitTarget): number {
 }
 
 /** 右键：清除该格三角形 */
-export function rightClickValue(_state: GameState, _target: HitTarget): number {
-  return NONE
+export function rightClickValue(state: GameState, target: HitTarget): number {
+  const s = state as ShakaState
+  const i = target.index
+  if (i < 0 || i >= s.cells.length) return NONE
+  if (isBlack(s.board[i]!)) return NONE
+  return ((s.cells[i]! + 4) % 5) as number
 }
 
 export function applyMove(state: GameState, move: Move): void {
